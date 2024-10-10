@@ -37,11 +37,11 @@ class TimerPage extends StatefulWidget {
 
 class _TimerPageState extends State<TimerPage> {
   // Variables pour le Timer
-  int shortWorkTime = 3 * 60; // 20 minutes de travail en secondes
+  int shortWorkTime = 3 * 60; // 25 minutes de travail en secondes
   int shortBreakTime = 1 * 60; // 5 minutes de pause
   int longWorkTime = 45 * 60; // 45 minutes de travail
   int longBreakTime = 15 * 60; // 15 minutes de pause
-  int timeRemaining = 20 * 60; // par défaut 20 minutes
+  int timeRemaining = 25 * 60; // par défaut 25 minutes
   bool isWorkPeriod = true; // Période de travail ou de pause
   Timer? _timer;
   bool isRunning = false;
@@ -52,7 +52,7 @@ class _TimerPageState extends State<TimerPage> {
   int totalWorkTime = 0; // Temps de travail total en secondes
   int currentWorkTime = 0; // Temps de travail de la session en cours
 
-  // Mode selection (20/5 ou 45/15)
+  // Mode selection (25/5 ou 45/15)
   bool isShortBreak = true;
 
   final player = AudioPlayer();
@@ -132,18 +132,14 @@ class _TimerPageState extends State<TimerPage> {
               id: 10,
               channelKey: 'basic_channel',
               title: 'SMOTUS Timer',
-              body: 'Félicitations ! Vous méritez cette pause'
-          )
-      );
+              body: 'Félicitations ! Vous méritez cette pause'));
     } else if (next == "nextWork") {
       AwesomeNotifications().createNotification(
           content: NotificationContent(
               id: 10,
               channelKey: 'basic_channel',
               title: 'SMOTUS Timer',
-              body: "C'est l'heure de vous mettre au travail."
-          )
-      );
+              body: "C'est l'heure de vous mettre au travail."));
     }
   }
 
@@ -267,7 +263,7 @@ class _TimerPageState extends State<TimerPage> {
                     }
                   },
                 ),
-                const Text('20/5', style: TextStyle(color: Colors.white)),
+                const Text('25/5', style: TextStyle(color: Colors.white)),
                 Radio(
                   value: false,
                   groupValue: isShortBreak,
@@ -287,12 +283,12 @@ class _TimerPageState extends State<TimerPage> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => HistoryPage(history: history)),
+                      MaterialPageRoute(
+                          builder: (context) => HistoryPage(history: history)),
                     );
                   },
                   child: const Text("Voir l'historique"),
                 ),
-
               ],
             )
           ],
@@ -301,4 +297,3 @@ class _TimerPageState extends State<TimerPage> {
     );
   }
 }
-
