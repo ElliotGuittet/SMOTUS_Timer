@@ -52,7 +52,7 @@ class _TimerPageState extends State<TimerPage> {
   bool isRunning = false;
   bool isPaused = false;
 
-  int completedSessions = 0;
+  int completedSessions = 1;
   int totalWorkTime = 0; // Temps de travail total en secondes
   int currentWorkTime = 0; // Temps de travail de la session en cours
 
@@ -87,15 +87,18 @@ class _TimerPageState extends State<TimerPage> {
   Future<User?> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return null; // L'utilisateur a annulé la connexion
+      if (googleUser == null)
+        return null; // L'utilisateur a annulé la connexion
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
 
       setState(() {
         _currentUser = userCredential.user; // Met à jour l'utilisateur connecté
@@ -148,16 +151,18 @@ class _TimerPageState extends State<TimerPage> {
   }
 
   void _resetTimer() {
+    if (isWorkPeriod) {
+      totalWorkTime += isShortBreak
+          ? shortWorkTime - timeRemaining
+          : longWorkTime - timeRemaining;
+    }
     _timer?.cancel();
 
-    // Enregistrer la session si du travail a été réalisé
-    if (currentWorkTime > 0) {
-      completedSessions++;
-      totalWorkTime += currentWorkTime; // Ajoute le temps de travail actuel à la somme totale
-
-      // Ajouter l'entrée à Firestore
-      _saveHistoryToFirestore();
-    }
+    // Ajouter l'entrée à Firestore
+    print('Enregistrement de l\'historique dans Firestore');
+    _saveHistoryToFirestore(); // Appel à la méthode
+    completedSessions = 1;
+    totalWorkTime = 0;
 
     // Réinitialiser le Timer
     setState(() {
@@ -191,6 +196,7 @@ class _TimerPageState extends State<TimerPage> {
   void _switchPeriods() {
     if (isWorkPeriod) {
       // Si on est en période de travail, passer à la pause
+      totalWorkTime += isShortBreak ? shortWorkTime : longWorkTime;
       triggerNotification("nextPause");
       player.play(AssetSource('sounds/start_break.mp3'));
       setState(() {
@@ -199,6 +205,7 @@ class _TimerPageState extends State<TimerPage> {
       });
     } else {
       // Si on est en pause, revenir à la période de travail
+      completedSessions++;
       triggerNotification("nextWork");
       player.play(AssetSource('sounds/start_work.mp3'));
       setState(() {
@@ -224,15 +231,55 @@ class _TimerPageState extends State<TimerPage> {
     return '$minutes:${secs.toString().padLeft(2, '0')}';
   }
 
-  Future<void> _saveHistoryToFirestore() async {
+  void _saveHistoryToFirestore() async {
     if (_currentUser != null) {
-      await _firestore.collection('user_sessions').add({
-        'userId': _currentUser!.uid,
-        'startTime': DateTime.now(),
-        'sessions': completedSessions,
-        'totalWorkTime': totalWorkTime,
-      });
-      print('Historique sauvegardé avec succès dans Firestore');
+      try {
+        await FirebaseFirestore.instance.collection('sessions').add({
+          'userId': _currentUser!.uid,
+          'startTime': FieldValue.serverTimestamp(),
+          'sessions': completedSessions,
+          'totalWorkTime': totalWorkTime,
+        });
+      } catch (e) {
+        print('Erreur lors de l\'enregistrement dans Firestore: $e');
+      }
+    } else {
+      print(
+          'Aucun utilisateur connecté. Impossible d\'enregistrer l\'historique.');
+    }
+  }
+
+  void _viewHistory(BuildContext context) async {
+    if (_currentUser != null) {
+      try {
+        QuerySnapshot snapshot = await FirebaseFirestore.instance
+            .collection('sessions')
+            .where('userId', isEqualTo: _currentUser!.uid) // Filtrer par utilisateur
+            .get();
+
+        List<Map<String, dynamic>> history = snapshot.docs.map((doc) {
+          Timestamp timestamp = doc['startTime']; // Récupérer le timestamp
+          return {
+            'date': timestamp, // Gardez le timestamp ici
+            'sessions': doc['sessions'],
+            'workTime': doc['totalWorkTime'],
+          };
+        }).toList();
+
+        // Trier les entrées par date (timestamp) décroissant
+        history.sort((a, b) => b['date'].compareTo(a['date']));
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HistoryPage(history: history),
+          ),
+        );
+      } catch (e) {
+        print('Erreur lors de la récupération de l\'historique : $e');
+      }
+    } else {
+      print('Aucun utilisateur connecté.');
     }
   }
 
@@ -248,29 +295,31 @@ class _TimerPageState extends State<TimerPage> {
             // Affiche les informations de l'utilisateur connecté
             _currentUser == null
                 ? ElevatedButton(
-              onPressed: () async {
-                User? user = await signInWithGoogle();
-                if (user != null) {
-                  print('Connexion réussie : ${user.displayName}');
-                } else {
-                  print("Échec de la connexion");
-                }
-              },
-              child: const Text('Connexion avec Google'),
-            )
+                    onPressed: () async {
+                      User? user = await signInWithGoogle();
+                      if (user != null) {
+                        print('Connexion réussie : ${user.displayName}');
+                      } else {
+                        print("Échec de la connexion");
+                      }
+                    },
+                    child: const Text('Connexion avec Google'),
+                  )
                 : Column(
-              children: [
-                Text(
-                  "Bienvenue, ${_currentUser!.displayName}",
-                  style: const TextStyle(fontSize: 18, color: Colors.white),
-                ),
-                ElevatedButton(
-                  onPressed: signOut,
-                  style: ElevatedButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text("Déconnexion"),
-                ),
-              ],
-            ),
+                    children: [
+                      Text(
+                        "Bienvenue, ${_currentUser!.displayName}",
+                        style:
+                            const TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                      ElevatedButton(
+                        onPressed: signOut,
+                        style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.red),
+                        child: const Text("Déconnexion"),
+                      ),
+                    ],
+                  ),
             // Titre et Timer
             const Text(
               "SMOTUS Timer",
@@ -281,8 +330,8 @@ class _TimerPageState extends State<TimerPage> {
               isPaused
                   ? "En pause"
                   : isWorkPeriod
-                  ? "Phase de travail"
-                  : "Repos ! Prends une pause",
+                      ? "Phase de travail"
+                      : "Repos ! Prends une pause",
               style: TextStyle(
                 fontSize: 24.0,
                 color: isPaused
@@ -345,13 +394,8 @@ class _TimerPageState extends State<TimerPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => HistoryPage(history: [],)),
-                    );
-                  },
+                  onPressed: () => _viewHistory(context),
+                  // Appel à la méthode pour voir l'historique
                   child: const Text("Voir l'historique"),
                 ),
               ],
