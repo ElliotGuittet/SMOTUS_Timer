@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "597942931478",
+    "project_id": "smotus-timer",
+    "storage_bucket": "smotus-timer.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:597942931478:android:1f55b7165397118dca6537",
+        "android_client_info": {
+          "package_name": "com.sirux.smotus_timer.smotus_timer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "597942931478-ocf2dam504btdkovhekcb6attj18mptc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sirux.smotus_timer.smotus_timer",
+            "certificate_hash": "9e91f43540de0f4d3789a58b98ed2faf895a9206"
+          }
+        },
+        {
+          "client_id": "597942931478-npr7174fjfo3l4p3tlcejfd5h7ijlgd6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCtm8ZxDY-YyhhLvi7fifipR_omS2ac7H4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "597942931478-npr7174fjfo3l4p3tlcejfd5h7ijlgd6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
